@@ -182,26 +182,7 @@ default
             if (body != "OK")
                 llOwnerSay("Server: "+body+"");
         }
-        else if (0)
-        {
-            list tok = llParseString2List(body, ["\n"], []);
-            string s = llList2String(tok,0);
-            string menuTitle = llList2String(tok,1);
-            string menu = llList2String(tok,2);
-            string menuVals = llList2String(tok,3);
 
-            if (s != "-")
-                llSay(0,""+s);
-            
-            if (menu != "" && menu != "-")
-            {
-                currentMenu = llParseString2List(  menu, ["|"], [] );
-                currentValues = llParseString2List(  menuVals, ["|"], [] );
-                
-                llDialog(dialogUser, menuTitle, currentMenu, channel);
-                status = "auto_menu";
-            }
-        }
     }
 }
 
