@@ -92,11 +92,11 @@ default
     {
         
         list details = llGetParcelDetails(llGetPos(), [PARCEL_DETAILS_OWNER, PARCEL_DETAILS_ID]);
-        if (llGetOwner() != llList2Key(details, 0))
+        /*if (llGetOwner() != llList2Key(details, 0))
         {
             llOwnerSay("You must place the beacon on a region that you own. The beacon won't work in  a region that you don't own");
             return;
-        }
+        }*/
         allowed = 1;
         
         checkBeacon();
