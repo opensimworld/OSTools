@@ -92,11 +92,8 @@ default
     {
         
         list details = llGetParcelDetails(llGetPos(), [PARCEL_DETAILS_OWNER, PARCEL_DETAILS_ID]);
-        /*if (llGetOwner() != llList2Key(details, 0))
-        {
-            llOwnerSay("You must place the beacon on a region that you own. The beacon won't work in  a region that you don't own");
-            return;
-        }*/
+
+        
         allowed = 1;
         
         checkBeacon();
@@ -141,10 +138,8 @@ default
         }
         else
         {
-            list opts = ["OpenSimWorld"];
-            dialogUser = llDetectedKey(0);
-            llDialog(dialogUser, "Find out more about opensimworld beacons at http://opensimworld.com/", opts, channel);
-            status = "wait_menu";
+            
+                llLoadURL(llDetectedKey(0), "Visit OpenSimWorld for more hypergrid destinations.", "http://opensimworld.com/?r=b");
         }
     }
     
@@ -165,13 +160,7 @@ default
             else
                 return;
         }
-        else if (status == "wait_menu")
-        {
-            if (msg == "OpenSimWorld")
-            {
-                llLoadURL(llGetOwner(), "Visit OpenSimWorld for more hypergrid destinations.", "http://opensimworld.com/?r=b");
-            }
-        }
+
     }
     
     http_response(key request_id, integer stcode, list metadata, string body)
