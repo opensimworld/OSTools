@@ -1,7 +1,8 @@
-# gate
-Opensimworld.com hypergrid gates
+# OpenSimWorld Beacon
 
-How opensimworld.com gates work:
+Opensimworld.com hypergrid beacon
+
+How to add the hypergrid beacon to your region
 
 3 Easy steps:
 
@@ -11,5 +12,7 @@ How opensimworld.com gates work:
 
 3) Rez this object in your region, and click on it. You will be asked to paste the region key that you copied in step 1.
 
-
 That's all! Your region will now appear in opensimworld.com with live-updating statistics. 
+
+
+If you keep having trouble , just use the add the beacon script from this repository to a prim object. 
