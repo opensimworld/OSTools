@@ -31,7 +31,7 @@ showListDialog()
         opts += ["<<" , "Close", ">>"];
         for (i=curStart+1 ; i < llGetListLength(tok) && i <= curStart+9;i++)
         {
-            list e = llParseString2List(llList2String(tok, i), ["%"], []);
+            list e = llParseString2List(llList2String(tok, i), ["#"], []);
             str += "["+(string)i+ "] "+llList2String(e, 2) + " ("+llList2String(e, 1)+" users)\n";
             opts += [(string)i];
         }
@@ -43,7 +43,7 @@ showListDialog()
 list getListItem(integer idx)
 {
         list tok = llParseString2List(listData, ["\n"], []);
-        list e = llParseString2List(llList2String(tok, idx), ["%"], []);
+        list e = llParseString2List(llList2String(tok, idx), ["#"], []);
         return e;
      //       str += (string)i+ " "+llList2String(e, 2) + " ("+llList2String(e, 1)+" users)\n";
  
@@ -109,8 +109,8 @@ default
                 llOwnerSay("Destination region is "+ llList2String(e,2) +" in HG address "+ llList2String(e,3)+" ");
                 vector pos = (vector)llList2String(e,4);
                 // It seems maps and teleports fail for some viewers
-                if (pos.x>255) pos.x = 255;
-                if (pos.y>255) pos.y = 255;
+                //if (pos.x>255) pos.x = 255;
+                //if (pos.y>255) pos.y = 255;
 
                 vector lookat = (vector)llList2String(e,5);
                 
@@ -133,7 +133,6 @@ default
                 }
                 
 
-                //showTPDialog();
         }
         else if ((integer)msg>0)
         {
@@ -143,13 +142,14 @@ default
         }
         else
         {
-            string url=BASEURL+"/list/?q="+msg+"&c="+cookie;
+            string url=BASEURL+"/list2/?q="+msg+"&c="+cookie;
             key req = llHTTPRequest(url, [], "");
         }
     }
     
     http_response(key request_id, integer stcode, list metadata, string body)
     {
+
         listData = body;
         curStart =0;
         showListDialog();
