@@ -9,12 +9,15 @@ integer curStart=0;
 list destAddr;
 string mode;
 integer selectedItem;
+string bkey = "";
+
 
 showTPDialog()
 {
          list e = getListItem(selectedItem);
-         string str = "Destination: "+ llList2String(e,2) +"\nHG address: "+ llList2String(e,3)+"  \n" + 
-             "\nSelect how to teleport. If you are in the same grid as the destination region, select 'Local Grid'";
+         string str = "Destination: "+ llList2String(e,2) +
+                  "\nHG address: "+ llList2String(e,3)+"  \n" + 
+                  "\nSelect how to teleport. If you are in the same grid as the destination region, select 'Local Grid'";
          llDialog(llGetOwner(),str , [  "HyperGrid", "LocalGrid", "Close"], channel);
 }
 
@@ -67,19 +70,26 @@ default
     touch_start(integer n)
     {
 
-        
-        list opts = [ "Website", "Help", "Close", "Popular", "Latest", "Random"];
+        list opts = [ "Bookmarks", "Website", "Close", "Popular", "Latest", "Random"];
         dialogUser = llDetectedKey(0);
-        llDialog(dialogUser, "Select sort order for regions: \n\nPopular: Regions sorted by number of visitors\nLatest: Newly added regions first\nRandom: Random order\n", opts, channel);
+        llDialog(dialogUser, "Select region list:\n", opts, channel);
         status = "wait_menu";
         
     }
     
     listen(integer chan, string who, key id, string msg)
     {
-        
-        
-        if (msg == "Close")
+         if (status == "wait_bkey")
+         {
+                  if (msg!="")
+                  {
+                           bkey = msg;
+                           llOwnerSay("You have successfully set your HUD key.");
+                           status  = "";
+                           return;
+                  }
+         }
+        else if (msg == "Close")
         {
             return;
         }
@@ -131,8 +141,16 @@ default
                 {
                     llMapDestination(llList2String(e,2), <128,128,22>, <0,0,0>);
                 }
+
                 
 
+        }
+        else if (msg == "Bookmarks" && bkey =="")
+        {
+         
+           llTextBox(llGetOwner(), "Please enter your HUD Key. You can find the Key in your account settings on opensimworld.com: http://opensimworld.com/settings.", channel);
+           status="wait_bkey";
+           return;
         }
         else if ((integer)msg>0)
         {
@@ -142,7 +160,8 @@ default
         }
         else
         {
-            string url=BASEURL+"/list2/?q="+msg+"&c="+cookie;
+
+            string url=BASEURL+"/list2/?q="+msg+"&bkey="+bkey+"&c="+cookie;
             key req = llHTTPRequest(url, [], "");
         }
     }
