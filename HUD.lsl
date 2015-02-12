@@ -61,6 +61,11 @@ default
 
     }
     
+    on_rez(integer n)
+    {
+        // This will cause a reset on every attach - necessary for changing HUD key
+        llResetScript();
+    }
     timer()
     {
 
