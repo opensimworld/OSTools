@@ -58,13 +58,14 @@ default
     {
         channel = -1 - (integer)("0x" + llGetSubString( (string) llGetKey(), -7, -1) );
         zListener =  llListen(channel, "","","");
-
+        bkey = llGetObjectDesc();
     }
     
     on_rez(integer n)
     {
         // This will cause a reset on every attach - necessary for changing HUD key
-        llResetScript();
+        //llResetScript();
+
     }
     timer()
     {
@@ -74,8 +75,7 @@ default
     
     touch_start(integer n)
     {
-
-        list opts = [ "Bookmarks", "Website", "Close", "Popular", "Latest", "Random"];
+        list opts = [ "Bookmarks", "Reset", "Close", "Popular", "Latest", "Random", "OpenSimWorld"];
         dialogUser = llDetectedKey(0);
         llDialog(dialogUser, "Select region list:\n", opts, channel);
         status = "wait_menu";
@@ -89,6 +89,7 @@ default
                   if (msg!="")
                   {
                            bkey = msg;
+
                            llOwnerSay("You have successfully set your HUD key.");
                            status  = "";
                            return;
@@ -98,7 +99,11 @@ default
         {
             return;
         }
-        else if (msg == "Website")
+        else if (msg == "Reset")
+        {
+           llResetScript();
+        }
+        else if (msg == "OpenSimWorld")
         {
             llLoadURL(dialogUser, "Visit opensimworld.com for more destinations", "http://opensimworld.com/?r=hud");
         }
@@ -179,5 +184,13 @@ default
         showListDialog();
     }
     
+    
+    changed(integer change)
+    {
+        if (change & CHANGED_OWNER){
+            llResetScript();
+        }
+    }
+
     
 }
