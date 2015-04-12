@@ -346,7 +346,11 @@ default
         }
         else if (request_id == beaconHttp)
         {
-            if (body != "OK")
+            if (body == "DISABLE")
+            {
+                llResetScript();
+            }
+            else if (body != "OK" && llStringLength(body)>0)
                 llOwnerSay("Server: "+body+"");
         }
     }
