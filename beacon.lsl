@@ -1,4 +1,4 @@
-string BASEURL="http://opensimworld.com/index.php/osgate";
+string BASEURL="http://beacon.opensimworld.com/index.php/osgate";
 integer channel;
 integer zListener=-1;
 key dialogUser;
