@@ -13,6 +13,8 @@ string wkey = "";
 integer timeTPused =0;
 key listHTTP = NULL_KEY;
 key beaconHttp;
+key keyReqId;
+key ratingReqId;
 string s_rating;
 integer nTotalAvis =-1;
 string regionName;
@@ -54,28 +56,6 @@ checkBeacon() {
     }
 }
 
-
-
-showListDialog()
-{
-        list tok = llParseString2List(listData, ["\n"], []);
-        string title = llList2String(tok,0);
-        integer i;
-        string str = "";
-        integer j;
-        destAddr = [];
-        list opts = [];
-        opts += ["<<" , "Close", ">>"];
-        for (i=curStart+1 ; i < llGetListLength(tok) && i <= curStart+9;i++)
-        {
-            list e = llParseString2List(llList2String(tok, i), ["#"], []);
-            str += "["+(string)i+ "] "+llList2String(e, 2) + " ("+llList2String(e, 1)+" users)\n";
-            opts += [(string)i];
-        }
- 
-        llDialog(dialogUser, title+ "\n"+str, opts, channel);   
-        mode = "loc"; 
-}
 
 partyOn(){
     
@@ -145,7 +125,7 @@ redrawScreen()
             list e = llParseString2List(llList2String(tok, i), ["#"], []);
             str = ""+(string)i+ ". "+llList2String(e, 2) + " ("+llList2String(e, 1)+" users)\n";
             //opts += [(string)i];
-            CommandList = osSetPenColor( CommandList, "FF3399EE" );
+            CommandList = osSetPenColor( CommandList, "FF3399DE" );
             CommandList = osMovePen( CommandList, x, y );
             CommandList = osDrawFilledRectangle( CommandList, 256,14);
             CommandList = osMovePen( CommandList, x+20, y );
@@ -162,10 +142,10 @@ redrawScreen()
     y = 236;
     x =0;
     CommandList = osSetPenColor( CommandList, "FFcf7000" );
-    CommandList = osMovePen( CommandList, x, y );
-    CommandList = osDrawFilledRectangle( CommandList, 256,20);
+    //CommandList = osMovePen( CommandList, x, y );
+    //CommandList = osDrawFilledRectangle( CommandList, 256,20);
     CommandList = osMovePen( CommandList, x+20, y );
-    CommandList = osSetPenColor( CommandList, "FF000000" );
+    CommandList = osSetPenColor( CommandList, "FF3399DE" );
     CommandList = osDrawText( CommandList,  "<< Previous");
     CommandList = osMovePen( CommandList, 200, y );
     CommandList = osDrawText( CommandList,  "Next >>");
@@ -178,26 +158,28 @@ list getListItem(integer idx)
         list tok = llParseString2List(listData, ["\n"], []);
         list e = llParseString2List(llList2String(tok, idx), ["#"], []);
         return e;
-     //       str += (string)i+ " "+llList2String(e, 2) + " ("+llList2String(e, 1)+" users)\n";
+
  
 }
+
 
 default
 {
     state_entry()
     {
         llParticleSystem([]);
-        
         channel = -1 - (integer)("0x" + llGetSubString( (string) llGetKey(), -7, -1) );
-        //zListener =  llListen(channel, "","","");
         redrawScreen();  
         llSetTexture("oswteleport", ALL_SIDES);
         status="init";
-        
+        string ncard = llGetInventoryName(INVENTORY_NOTECARD, 0);
+        if (ncard == "beacon_key")
+            keyReqId = llGetNotecardLine(ncard, 0);            
         checkBeacon();
         llSetTimerEvent(60);
-        key gRateingQuery = llRequestSimulatorData( llGetRegionName(), DATA_SIM_RATING );
+        key ratingReqId = llRequestSimulatorData( llGetRegionName(), DATA_SIM_RATING );
     }
+    
     
     on_rez(integer n)
     {
@@ -223,13 +205,23 @@ default
     
     dataserver(key query_id, string data)
     {
-        s_rating = data;
+        if (query_id == keyReqId)
+        {
+           wkey = llStringTrim(data, STRING_TRIM);
+           llOwnerSay("The beacon key has been loaded from notecard 'beacon_key'");
+           status = "sleeping";
+           checkBeacon();
+        }
+        else if (query_id==ratingReqId)
+        {
+            s_rating = data;
+        }
     }
     
     touch_start(integer n)
     {
+        if (llDetectedLinkNumber(0) != 1) return;   
         dialogUser = llDetectedKey(0);
-        
         if (wkey == "" )
         {
             if (llGetOwner() == llDetectedKey(0))
@@ -249,12 +241,9 @@ default
         }
         vector pos = llDetectedTouchST(0);
      
-        //llOwnerSay("Pos="+(string)pos);
             
         string cmd;
-        
         timeTPused =0;
-        
         if (status == "sleeping")
         {
             cmd = "Popular";
@@ -323,8 +312,8 @@ default
          {
               if (msg!="")
               {
-                       wkey = llStringTrim(msg, STRING_TRIM);
                        llOwnerSay("You have successfully set your Beacon key.");
+                       wkey = msg;
                        status  = "sleeping";
                        llListenRemove(zListener);
                        zListener = -1;
@@ -334,6 +323,15 @@ default
          }
 
     }
+    
+    changed(integer change)
+    {
+        if (change & CHANGED_INVENTORY)
+        {
+            llResetScript();
+        }
+    }
+
     
     http_response(key request_id, integer stcode, list metadata, string body)
     {
@@ -348,7 +346,8 @@ default
         {
             if (body == "DISABLE")
             {
-                llResetScript();
+                llSetText( "Disabled", <1,.2,.2>, 1.0);
+                llSetTimerEvent(0);
             }
             else if (body != "OK" && llStringLength(body)>0)
                 llOwnerSay("Server: "+body+"");
