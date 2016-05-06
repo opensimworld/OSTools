@@ -206,7 +206,7 @@ default
 
         checkBeacon();
         llSetTimerEvent(60);
-        key ratingReqId = llRequestSimulatorData( llGetRegionName(), DATA_SIM_RATING );
+        ratingReqId = llRequestSimulatorData( llGetRegionName(), DATA_SIM_RATING );
     }
     
     
