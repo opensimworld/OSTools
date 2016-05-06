@@ -1,18 +1,3 @@
-/*
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
 string BASEURL="http://beacon.opensimworld.com/index.php/osgate";
 integer channel;
 integer zListener=-1;
@@ -29,16 +14,33 @@ integer timeTPused =0;
 key listHTTP = NULL_KEY;
 key beaconHttp;
 key keyReqId;
+key excludeReqId;
+integer excludedLine;
+list listExcluded;
+string strExcluded;
 key ratingReqId;
 string s_rating;
 integer nTotalAvis =-1;
 string regionName;
 integer minsSinceLast=-1;
 integer tChanOpen =-1;
+string BEACON_NC = "beacon_key";
+string EXCLUDE_NC = "exclude_list";
 
 integer isWithin(vector v, float x1, float y1, float x2, float y2)
 {
     return (v.x <x2) && (v.x >=x1) && (v.y<y2) && (v.y >=y1);
+}
+
+integer IsExcluded(key uid)
+{
+    string nm = llKey2Name(uid);
+    if (llListFindList(listExcluded, [nm])>=0)
+    {
+        llOwnerSay("Excluded: " + nm);
+        return TRUE;
+    }
+    return FALSE;
 }
 
 checkBeacon() { 
@@ -53,8 +55,12 @@ checkBeacon() {
     integer howmany = llGetListLength(avis);
     integer i;
     for ( i = 0; i < howmany; i++ ) {
-        if ( ! osIsNpc(llList2Key(avis, i)) )
-            nNew++; // only non-NPC's
+        
+        if ( !osIsNpc(llList2Key(avis, i))  && !IsExcluded(llList2Key(avis, i)))
+        {
+            nNew++;
+        }
+
     }
     if ( nNew != nTotalAvis || minsSinceLast > 30 ) {
         nTotalAvis = nNew;
@@ -174,7 +180,6 @@ list getListItem(integer idx)
         list e = llParseString2List(llList2String(tok, idx), ["#"], []);
         return e;
 
- 
 }
 
 
@@ -187,9 +192,18 @@ default
         redrawScreen();  
         llSetTexture("oswteleport", ALL_SIDES);
         status="init";
-        string ncard = llGetInventoryName(INVENTORY_NOTECARD, 0);
-        if (ncard == "beacon_key")
-            keyReqId = llGetNotecardLine(ncard, 0);            
+
+        if (llGetInventoryType(BEACON_NC) == INVENTORY_NOTECARD)
+        {
+            keyReqId = llGetNotecardLine(BEACON_NC, 0);
+        }
+
+        if (llGetInventoryType(EXCLUDE_NC) == INVENTORY_NOTECARD)
+        {
+            excludedLine =0;
+            excludeReqId = llGetNotecardLine(EXCLUDE_NC, excludedLine);
+        }
+
         checkBeacon();
         llSetTimerEvent(60);
         key ratingReqId = llRequestSimulatorData( llGetRegionName(), DATA_SIM_RATING );
@@ -223,13 +237,41 @@ default
         if (query_id == keyReqId)
         {
            wkey = llStringTrim(data, STRING_TRIM);
-           llOwnerSay("The beacon key has been loaded from notecard 'beacon_key'");
-           status = "sleeping";
-           checkBeacon();
+           if (wkey != "")
+           {
+               llOwnerSay("The beacon key '"+wkey+"' has been loaded from notecard 'beacon_key'");
+               status = "sleeping";
+               checkBeacon();
+            }
         }
         else if (query_id==ratingReqId)
         {
             s_rating = data;
+        }
+        else if (query_id==excludeReqId)
+        {
+            if (data == EOF)
+            {
+                list tok = llParseString2List(strExcluded, ["\n"], []);
+                integer i;
+                listExcluded = [];
+                for (i=0; i < llGetListLength(tok); i++)
+                {
+                    string un = llStringTrim(llList2String(tok,i), STRING_TRIM);
+                    if (un != "")
+                    {
+                        listExcluded += un;
+                        llOwnerSay("Excluding: " + un);
+                    }
+                }
+                excludedLine =0;
+                checkBeacon();
+            }
+            else
+            {
+                strExcluded += data;
+                excludeReqId=llGetNotecardLine(EXCLUDE_NC, ++excludedLine);
+            }
         }
     }
     
