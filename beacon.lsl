@@ -37,7 +37,7 @@ integer IsExcluded(key uid)
     string nm = llKey2Name(uid);
     if (llListFindList(listExcluded, [nm])>=0)
     {
-        llOwnerSay("Excluded: " + nm);
+       //llOwnerSay("Excluded: " + nm);
         return TRUE;
     }
     return FALSE;
