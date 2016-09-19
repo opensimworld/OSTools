@@ -1,15 +1,15 @@
-string BASEURL="http://opensimworld.com/index.php/osgate";
+string BASEURL="http://beacon.opensimworld.com/index.php/osgate";
 integer channel;
 integer zListener=-1;
 key dialogUser;
 string status;
-string cookie;
 string listData;
 integer curStart=0;
 list destAddr;
 string mode;
 integer selectedItem;
-string bkey = "";
+string lastCommand;
+key req;
 
 
 showTPDialog()
@@ -31,7 +31,7 @@ showListDialog()
         integer j;
         destAddr = [];
         list opts = [];
-        opts += ["<<" , "Close", ">>"];
+        opts += ["<<" , "CLOSE", ">>"];
         for (i=curStart+1 ; i < llGetListLength(tok) && i <= curStart+9;i++)
         {
             list e = llParseString2List(llList2String(tok, i), ["#"], []);
@@ -52,56 +52,62 @@ list getListItem(integer idx)
  
 }
 
+startListening()
+{
+    if (zListener >=0) llListenRemove(zListener);
+    channel = -1 - (integer)("0x" + llGetSubString( (string) llGetKey(), -7, -1) );
+    zListener =  llListen(channel, "",llGetOwner(),"");
+    llSetTimerEvent(300);
+}
+
 default
 {
     state_entry()
     {
-        channel = -1 - (integer)("0x" + llGetSubString( (string) llGetKey(), -7, -1) );
-        zListener =  llListen(channel, "","","");
-        bkey = llGetObjectDesc();
+
     }
     
     on_rez(integer n)
     {
-        // This will cause a reset on every attach - necessary for changing HUD key
-        //llResetScript();
-
     }
+    
     timer()
     {
-
+        if (zListener >=0) 
+        {
+            llListenRemove(zListener);
+            zListener = -1;
+        }
+        status = "";
+        llSetTimerEvent(0);
     }
     
     
     touch_start(integer n)
     {
-        list opts = [ "Bookmarks", "Reset", "Close", "Popular", "Latest", "Random", "OpenSimWorld"];
+        list opts = ["+Like", "+Bookmark", "CLOSE", "Popular", "Latest", "Random", "Bookmarks", "RegionInfo"];
         dialogUser = llDetectedKey(0);
+        startListening();
         llDialog(dialogUser, "Select region list:\n", opts, channel);
         status = "wait_menu";
-        
     }
-    
+
     listen(integer chan, string who, key id, string msg)
     {
-         if (status == "wait_bkey")
-         {
-                  if (msg!="")
-                  {
-                           bkey = msg;
-
-                           llOwnerSay("You have successfully set your HUD key.");
-                           status  = "";
-                           return;
-                  }
-         }
-        else if (msg == "Close")
+        if (status == "waitkey")
         {
+            if (msg != "")
+            {
+                string url=BASEURL+"/setkey/?k="+msg;
+                req = llHTTPRequest(url, [], "");
+                status = "";
+                return;
+            }
             return;
         }
-        else if (msg == "Reset")
+        else if (msg == "CLOSE")
         {
-           llResetScript();
+            return;
         }
         else if (msg == "OpenSimWorld")
         {
@@ -128,9 +134,6 @@ default
                 list e = getListItem(selectedItem);
                 llOwnerSay("Destination region is "+ llList2String(e,2) +" in HG address "+ llList2String(e,3)+" ");
                 vector pos = (vector)llList2String(e,4);
-                // It seems maps and teleports fail for some viewers
-                //if (pos.x>255) pos.x = 255;
-                //if (pos.y>255) pos.y = 255;
 
                 vector lookat = (vector)llList2String(e,5);
                 
@@ -144,53 +147,64 @@ default
                 }
                 else if (msg == "HG Map")
                 {
-                    //This only works on touch event :(
+                    //This only works on touch events or in attachments :(
                    // llMapDestination(llList2String(e,3), <128,128,22>, <0,0,0>);
                 }
                 else if (msg == "LocalMap")
                 {
                     llMapDestination(llList2String(e,2), <128,128,22>, <0,0,0>);
                 }
-
-                
-
-        }
-        else if (msg == "Bookmarks" && bkey =="")
-        {
-         
-           llTextBox(llGetOwner(), "Please enter your HUD Key. You can find the Key in your account settings on opensimworld.com: http://opensimworld.com/settings.", channel);
-           status="wait_bkey";
-           return;
         }
         else if ((integer)msg>0)
         {
-
             selectedItem = (integer)msg;
             showTPDialog();
         }
         else
         {
-
-            string url=BASEURL+"/list2/?q="+msg+"&bkey="+bkey+"&c="+cookie;
-            key req = llHTTPRequest(url, [], "");
+            string url=BASEURL+"/list2/?q="+llEscapeURL(msg);
+            req = llHTTPRequest(url, [], "");
         }
     }
     
     http_response(key request_id, integer stcode, list metadata, string body)
     {
+        //llOwnerSay("Got: "+body);
+        if (llGetSubString(body, 0,3) == "MSG^")
+        {
+            list tok = llParseString2List(body, ["^"], []);
+            if (llList2String(tok,1) != "-")
+                llDialog(llGetOwner(), llList2String(tok, 1), ["CLOSE"], channel);
+            if (llList2String(tok, 2) != "")
+                llSay(0, llList2String(tok, 2));
+        }
+        else if (llGetSubString(body, 0,3) == "URL^")
+        {
+             list tok = llParseString2List(body, ["^"], []);
+             llLoadURL(llGetOwner(),  llList2String(tok, 1), llList2String(tok,2));
+        }
+        else if (llGetSubString(body, 0,3) == "REQ^" || llGetSubString(body, 0,3) == "CMT^")
+        {
+            list tok = llParseString2List(body, ["^"], []);
+            startListening();
+            llTextBox(llGetOwner(), llList2String(tok, 1), channel);
 
-        listData = body;
-        curStart =0;
-        showListDialog();
-    }
-    
-    
-    changed(integer change)
-    {
-        if (change & CHANGED_OWNER){
-            llResetScript();
+            if (llList2String(tok, 2) != "")
+                llSay(0, llList2String(tok, 2));
+
+            if (llGetSubString(body, 0,3) == "REQ^")
+                status = "waitkey";
+            else 
+                status = "waitcmt";
+        }
+        else
+        {
+            listData = body;
+            curStart =0;
+            showListDialog();
         }
     }
-
+    
+    
     
 }
